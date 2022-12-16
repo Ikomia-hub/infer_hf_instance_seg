@@ -1,0 +1,1 @@
+# infer_huggingface_instance_segmentation
