@@ -48,7 +48,7 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
 
         # Model loading method
         self.combo_model = pyqtutils.append_combo(self.gridLayout, "Model:")
-        self.combo_model.addItem("From Hugging Face Model Hub")
+        self.combo_model.addItem("From: Costum model name")
         self.combo_model.addItem("facebook/maskformer-swin-base-ade")
         self.combo_model.addItem("facebook/maskformer-swin-base-coco")
         self.combo_model.addItem("facebook/maskformer-swin-large-ade")
