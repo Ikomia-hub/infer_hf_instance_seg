@@ -26,7 +26,8 @@ import torch
 import numpy as np
 import random
 import cv2 
-
+import os
+import json
 
 # --------------------
 # - Class to handle the process parameters
@@ -39,9 +40,9 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
         # Place default value initialization here
         self.cuda = torch.cuda.is_available()
         self.model_name = "facebook/maskformer-swin-base-coco"
-        self.model_card =  "facebook/maskformer-swin-tiny-ade"
+        self.checkpoint_path = ""
+        self.checkpoint = False
         self.conf_thres = 0.5
-        self.background = False
         self.update = False
 
     def setParamMap(self, param_map):
@@ -49,9 +50,9 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
         # Parameters values are stored as string and accessible like a python dict
         self.cuda = strtobool(param_map["cuda"])
         self.model_name = str(param_map["model_name"])
-        self.model_card = str(param_map["model_card"])
+        self.pretrained = strtobool(param_map["checkpoint"])
+        self.checkpoint_path = param_map["checkpoint_path"]
         self.conf_thres = float(param_map["conf_thres"])
-        self.background = strtobool(param_map["background_idx"])
         self.update = strtobool(param_map["update"])
 
     def getParamMap(self):
@@ -59,9 +60,9 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
         # Create the specific dict structure (string container)
         param_map = core.ParamMap()
         param_map["cuda"] = str(self.cuda)
-        param_map["model_name"]= str(self.model_name)
-        param_map["model_card"] = str(self.model_card)
-        param_map["background_idx"] = str(self.background)
+        param_map["model_name"] = str(self.model_name)
+        param_map["checkpoint"] = str(self.checkpoint)
+        param_map["checkpoint_path"] = self.checkpoint_path
         param_map["conf_thres"] = str(self.conf_thres)
         param_map["update"] = str(self.update)
         return param_map
@@ -183,17 +184,18 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
 
         if param.update or self.model is None:
         # Feature extractor selection
-            if param.model_card == "":
-                param.model_card = None
-            if param.model_name == "From: Costum model name":
-                self.model_id = param.model_card
+            model_id = None
+            # Feature extractor selection
+            if param.checkpoint is False:
+                model_id = param.model_name
+                self.feature_extractor = AutoFeatureExtractor.from_pretrained(model_id)
             else:
-                self.model_id = param.model_name
-                param.model_card = None
-            self.feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_id)
+                feature_extractor_path = os.path.join(param.checkpoint_path, "preprocessor_config.json")
+                model_id = param.checkpoint_path
+                self.feature_extractor = AutoFeatureExtractor.from_pretrained(feature_extractor_path)
 
             # Loading model weight
-            self.model = AutoModelForInstanceSegmentation.from_pretrained(self.model_id)
+            self.model = AutoModelForInstanceSegmentation.from_pretrained(model_id)
             self.device = torch.device("cuda") if param.cuda else torch.device("cpu")
             self.model.to(self.device)
             print("Will run on {}".format(self.device.type))
@@ -204,14 +206,9 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
             # Color palette
             n = len(self.classes)
             random.seed(14)
-            if param.background is True:
-                self.colors = [[0,0,0]]
-                for i in range(n-1):
-                    self.colors.append(random.choices(range(256), k=3))
-            else:
-                self.colors = []
-                for i in range(n):
-                    self.colors.append(random.choices(range(256), k=3))
+            self.colors = []
+            for i in range(n):
+                self.colors.append(random.choices(range(256), k=3))
             self.setOutputColorMap(0, 1, self.colors)
             param.update = False
 

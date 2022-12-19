@@ -1,0 +1,8 @@
+facebook/maskformer-swin-tiny-ade
+facebook/maskformer-swin-small-ade
+facebook/maskformer-swin-base-ade
+facebook/maskformer-swin-large-ade
+facebook/maskformer-swin-tiny-coco
+facebook/maskformer-swin-small-coco
+facebook/maskformer-swin-base-coco
+facebook/maskformer-swin-large-coco
