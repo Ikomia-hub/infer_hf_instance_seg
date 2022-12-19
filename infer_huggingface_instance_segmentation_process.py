@@ -19,15 +19,12 @@
 from ikomia import core, dataprocess
 import copy
 # Your imports below
-import transformers
 from transformers import AutoFeatureExtractor, AutoModelForInstanceSegmentation
 from ikomia.utils import strtobool
 import numpy as np
 import torch
 import numpy as np
 import random
-import os
-import json
 import cv2 
 
 
@@ -127,7 +124,7 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
         dst_image = results["segmentation"].cpu().detach().numpy().astype(dtype=np.uint8)
         dst_image = cv2.resize(dst_image, (w,h), interpolation = cv2.INTER_NEAREST)
 
-        # Generating binary masks for each object present in a groundtruth mask
+        # Generating binary masks for each object present in the groundtruth mask
         unique_colors = np.unique(dst_image).tolist()
         unique_colors = [x for x in unique_colors if x != 0]
 
@@ -155,14 +152,14 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
 
         # Add segmented instance to the output
         for i, b, ml in zip(segments_info, boxes, mask_list):
-            x = (b[0] + b[2])/2
-            y = (b[1] + b[3])/2
+            x1 = (b[0] + b[2])/2
             instance_output.addInstance(
                                     i["id"],
-                                    0, i["label_id"],
+                                    0,
+                                    i["label_id"],
                                     self.classes[i["label_id"]],
                                     float(i["score"]),
-                                    float(x),
+                                    float(x1),
                                     float(b[1]),
                                     0,
                                     0,
