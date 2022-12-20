@@ -114,6 +114,9 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
         results = self.feature_extractor.post_process_panoptic_segmentation(
                                                                         outputs,
                                                                         threshold = param.conf_thres,
+                                                                        mask_threshold= 0.5,
+                                                                        overlap_mask_area_threshold = 0.8,
+                                                                        target_sizes=[[h, w]]
                                                                         )[0]
         segments_info = results["segments_info"]
 
@@ -123,7 +126,7 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
 
         # dstImage
         dst_image = results["segmentation"].cpu().detach().numpy().astype(dtype=np.uint8)
-        dst_image = cv2.resize(dst_image, (w,h), interpolation = cv2.INTER_NEAREST)
+        #dst_image = cv2.resize(dst_image, (w,h), interpolation = cv2.INTER_NEAREST)
 
         # Generating binary masks for each object present in the groundtruth mask
         unique_colors = np.unique(dst_image).tolist()
@@ -147,23 +150,29 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
                 x1, x2 = horizontal_indicies[[0, -1]]
                 y1, y2 = vertical_indicies[[0, -1]]
             boxes.append([x1, y1, x2, y2])
+        print(boxes)
         boxes = boxes[:-1]
         boxes.reverse()
-        mask_list.pop(0)
-
+        #mask_list.pop(0)
         # Add segmented instance to the output
         for i, b, ml in zip(segments_info, boxes, mask_list):
-            x1 = (b[0] + b[2])/2
+            #x_obj, y_obj, w_obj, h_obj = boxes
+            x_obj = float(b[0])
+            y_obj = float(b[1])
+            h_obj = (float(b[3]) - y_obj)
+            w_obj = (float(b[2]) - x_obj)
+            # convert ml to array dtype uint8
+            ml = ml.astype(dtype='uint8')    
             instance_output.addInstance(
-                                    i["id"],
+                                    i["id"]-1,
                                     0,
                                     i["label_id"],
                                     self.classes[i["label_id"]],
                                     float(i["score"]),
-                                    float(x1),
-                                    float(b[1]),
-                                    0,
-                                    0,
+                                    x_obj,
+                                    y_obj,
+                                    w_obj,
+                                    h_obj,
                                     ml,
                                     self.colors[i["label_id"]]
                                     )
@@ -209,7 +218,7 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
             self.colors = []
             for i in range(n):
                 self.colors.append(random.choices(range(256), k=3))
-            self.setOutputColorMap(0, 1, self.colors)
+            self.setOutputColorMap(0, 1, [[0, 0, 0]] + self.colors)
             param.update = False
 
         # Inference
