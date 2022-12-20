@@ -25,9 +25,7 @@ import numpy as np
 import torch
 import numpy as np
 import random
-import cv2 
 import os
-import json
 
 # --------------------
 # - Class to handle the process parameters
@@ -42,7 +40,9 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
         self.model_name = "facebook/maskformer-swin-base-coco"
         self.checkpoint_path = ""
         self.checkpoint = False
-        self.conf_thres = 0.5
+        self.conf_thres = 0.500
+        self.conf_mask_thres = 0.5
+        self.conf_overlap_mask_area_thres = 0.8
         self.update = False
 
     def setParamMap(self, param_map):
@@ -53,6 +53,8 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
         self.pretrained = strtobool(param_map["checkpoint"])
         self.checkpoint_path = param_map["checkpoint_path"]
         self.conf_thres = float(param_map["conf_thres"])
+        self.conf_mask_thres = float(param_map["conf_mask_thres"])
+        self.conf_overlap_mask_area_thres = float(param_map["conf_overlap_mask_area_thres"])
         self.update = strtobool(param_map["update"])
 
     def getParamMap(self):
@@ -64,6 +66,8 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
         param_map["checkpoint"] = str(self.checkpoint)
         param_map["checkpoint_path"] = self.checkpoint_path
         param_map["conf_thres"] = str(self.conf_thres)
+        param_map["conf_mask_thres"] = str(self.conf_mask_thres)
+        param_map["conf_overlap_mask_area_thres"] = str(self.conf_overlap_mask_area_thres)
         param_map["update"] = str(self.update)
         return param_map
 
@@ -112,12 +116,13 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
         with torch.no_grad():
             outputs = self.model(**encoding)
         results = self.feature_extractor.post_process_panoptic_segmentation(
-                                                                        outputs,
-                                                                        threshold = param.conf_thres,
-                                                                        mask_threshold= 0.5,
-                                                                        overlap_mask_area_threshold = 0.8,
-                                                                        target_sizes=[[h, w]]
-                                                                        )[0]
+                                            outputs,
+                                            threshold = param.conf_thres,
+                                            mask_threshold= param.conf_mask_thres,
+                                            overlap_mask_area_threshold = param.conf_overlap_mask_area_thres,
+                                            target_sizes=[[h, w]]
+                                            )[0]
+
         segments_info = results["segments_info"]
 
         # Get output :
@@ -150,7 +155,6 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
                 x1, x2 = horizontal_indicies[[0, -1]]
                 y1, y2 = vertical_indicies[[0, -1]]
             boxes.append([x1, y1, x2, y2])
-        print(boxes)
         boxes = boxes[:-1]
         boxes.reverse()
         #mask_list.pop(0)

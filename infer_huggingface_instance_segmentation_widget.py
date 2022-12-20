@@ -76,18 +76,37 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
                         self.gridLayout, "Cuda",
                         self.parameters.cuda and is_available())
 
-        # Threshold
+        # Threshold to keep predicted instance masks.
         self.double_spin_thres = pyqtutils.append_double_spin(
-                                self.gridLayout, "Confidence threshold",
-                                self.parameters.conf_thres, min = 0., max = 1., step = 0.01, decimals = 3)
+                                self.gridLayout,
+                                "Confidence threshold",
+                                self.parameters.conf_thres, 
+                                min = 0., max = 1.,
+                                step = 0.01, decimals = 3)
 
+        # mask_threshold  to use when turning the predicted masks into binary values.
+        self.double_spin_mask_thres = pyqtutils.append_double_spin(
+                                self.gridLayout,
+                                "Confidence mask threshold",
+                                self.parameters.conf_mask_thres, 
+                                min = 0., max = 1., 
+                                step = 0.01, decimals = 2)
+
+        # overlap_mask_area_threshold overlap mask area threshold to merge 
+        # or discard small disconnected parts within each binary instance mask.
+        self.ds_overlap_mask_area_thres = pyqtutils.append_double_spin(
+                                self.gridLayout,
+                                "Confidence IOU",
+                                self.parameters.conf_overlap_mask_area_thres, 
+                                min = 0., max = 1.,
+                                step = 0.01, decimals = 2)
 
         # Link of available models from Hugging face hub
         urlLink = "<a href=\"https://huggingface.co/models?sort=downloads&search=maskformer\">"\
                  "List of Masformer models [Hugging Face Hub] </a>"
         self.qlabelModelLink = QLabel(urlLink)
         self.qlabelModelLink.setOpenExternalLinks(True)
-        self.gridLayout.addWidget(self.qlabelModelLink, 5, 0)
+        self.gridLayout.addWidget(self.qlabelModelLink, 7, 0)
 
         # PyQt -> Qt wrapping
         layout_ptr = qtconversion.PyQtToQt(self.gridLayout)
@@ -105,6 +124,8 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
         self.parameters.update = True
         self.parameters.model_name = self.combo_model.currentText()
         self.parameters.conf_thres = self.double_spin_thres.value()
+        self.parameters.conf_mask_thres = self.double_spin_mask_thres.value()
+        self.parameters.conf_overlap_mask_area_thres = self.ds_overlap_mask_area_thres.value()
         self.parameters.cuda = self.check_cuda.isChecked()
         self.parameters.checkpoint = self.check_checkoint.isChecked()
         self.parameters.checkpoint_path = self.browse_ckpt.path
