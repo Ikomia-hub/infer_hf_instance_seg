@@ -109,19 +109,18 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
         # Image pre-pocessing (image transformation and conversion to PyTorch tensor)
         encoding = self.feature_extractor(image, return_tensors="pt")
         if param.cuda is True:
-            #encoding = encoding.cuda()
             encoding = encoding.to(self.device)
         h, w, _ = np.shape(image)
         # Prediction
         with torch.no_grad():
             outputs = self.model(**encoding)
         results = self.feature_extractor.post_process_panoptic_segmentation(
-                                            outputs,
-                                            threshold = param.conf_thres,
-                                            mask_threshold= param.conf_mask_thres,
-                                            overlap_mask_area_threshold = param.conf_overlap_mask_area_thres,
-                                            target_sizes=[[h, w]]
-                                            )[0]
+                                outputs,
+                                threshold = param.conf_thres,
+                                mask_threshold= param.conf_mask_thres,
+                                overlap_mask_area_threshold = param.conf_overlap_mask_area_thres,
+                                target_sizes=[[h, w]]
+                                )[0]
 
         segments_info = results["segments_info"]
 
@@ -131,8 +130,6 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
 
         # dstImage
         dst_image = results["segmentation"].cpu().detach().numpy().astype(dtype=np.uint8)
-        #dst_image = cv2.resize(dst_image, (w,h), interpolation = cv2.INTER_NEAREST)
-
         # Generating binary masks for each object present in the groundtruth mask
         unique_colors = np.unique(dst_image).tolist()
         unique_colors = [x for x in unique_colors if x != 0]
@@ -157,16 +154,15 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
             boxes.append([x1, y1, x2, y2])
         boxes = boxes[:-1]
         boxes.reverse()
-        #mask_list.pop(0)
+
         # Add segmented instance to the output
         for i, b, ml in zip(segments_info, boxes, mask_list):
-            #x_obj, y_obj, w_obj, h_obj = boxes
             x_obj = float(b[0])
             y_obj = float(b[1])
             h_obj = (float(b[3]) - y_obj)
             w_obj = (float(b[2]) - x_obj)
-            # convert ml to array dtype uint8
-            ml = ml.astype(dtype='uint8')    
+
+            ml = ml.astype(dtype='uint8')  
             instance_output.addInstance(
                                     i["id"]-1,
                                     0,
@@ -203,7 +199,10 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
                 model_id = param.model_name
                 self.feature_extractor = AutoFeatureExtractor.from_pretrained(model_id)
             else:
-                feature_extractor_path = os.path.join(param.checkpoint_path, "preprocessor_config.json")
+                feature_extractor_path = os.path.join(
+                                                    param.checkpoint_path,
+                                                    "preprocessor_config.json"
+                                                    )
                 model_id = param.checkpoint_path
                 self.feature_extractor = AutoFeatureExtractor.from_pretrained(feature_extractor_path)
 

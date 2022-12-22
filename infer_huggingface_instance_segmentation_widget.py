@@ -56,8 +56,10 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
         self.combo_model.setCurrentText(self.parameters.model_name)
         model_list_file.close()
 
-        self.check_checkoint = pyqtutils.append_check(self.gridLayout, "Model from checkpoint(local)",
-                                                       self.parameters.checkpoint)
+        self.check_checkoint = pyqtutils.append_check(self.gridLayout, 
+                                                    "Model from checkpoint(local)",
+                                                    self.parameters.checkpoint
+                                                    )
 
         self.check_checkoint.stateChanged.connect(self.onStateChanged)
 
@@ -80,7 +82,7 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
         self.double_spin_thres = pyqtutils.append_double_spin(
                                 self.gridLayout,
                                 "Confidence threshold",
-                                self.parameters.conf_thres, 
+                                self.parameters.conf_thres,
                                 min = 0., max = 1.,
                                 step = 0.01, decimals = 3)
 
@@ -88,16 +90,16 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
         self.double_spin_mask_thres = pyqtutils.append_double_spin(
                                 self.gridLayout,
                                 "Confidence mask threshold",
-                                self.parameters.conf_mask_thres, 
-                                min = 0., max = 1., 
+                                self.parameters.conf_mask_thres,
+                                min = 0., max = 1.,
                                 step = 0.01, decimals = 2)
 
-        # overlap_mask_area_threshold overlap mask area threshold to merge 
+        # overlap_mask_area_threshold overlap mask area threshold to merge
         # or discard small disconnected parts within each binary instance mask.
         self.ds_overlap_mask_area_thres = pyqtutils.append_double_spin(
                                 self.gridLayout,
                                 "Confidence IOU",
-                                self.parameters.conf_overlap_mask_area_thres, 
+                                self.parameters.conf_overlap_mask_area_thres,
                                 min = 0., max = 1.,
                                 step = 0.01, decimals = 2)
 
