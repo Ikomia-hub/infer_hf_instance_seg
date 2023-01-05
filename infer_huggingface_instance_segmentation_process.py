@@ -95,6 +95,7 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
 
         # Detect if we have a GPU available
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.instance_output = None
         self.model = None
         self.model_id = None
         self.feature_extractor = None
@@ -123,15 +124,14 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
                                 threshold = param.conf_thres,
                                 mask_threshold= param.conf_mask_thres,
                                 overlap_mask_area_threshold = param.conf_overlap_mask_area_thres,
-                                target_sizes=[[h, w]], 
+                                target_sizes=[[h, w]],
                                 label_ids_to_fuse= None,
                                 )[0]
 
         segments_info = results["segments_info"]
 
-        # Get output :
-        instance_output = self.getOutput(1)
-        instance_output.init("PanopticSegmentation", 0, w, h)
+        self.instance_output = self.getOutput(1)
+        self.instance_output.init("PanopticSegmentation", 0, w, h)
 
         # dstImage
         dst_image = results["segmentation"].cpu().detach().numpy().astype(dtype=np.uint8)
@@ -168,7 +168,7 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
             w_obj = (float(b[2]) - x_obj)
 
             ml = ml.astype(dtype='uint8')  
-            instance_output.addInstance(
+            self.instance_output.addInstance(
                                     i["id"]-1,
                                     0,
                                     i["label_id"],
@@ -226,12 +226,12 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
             self.colors = []
             for i in range(n):
                 self.colors.append(random.choices(range(256), k=3))
-            self.setOutputColorMap(0, 1, [[0, 0, 0]] + self.colors)
             param.update = False
 
         # Inference
         self.infer(image)
-
+        
+        self.setOutputColorMap(0, 1, [[0, 0, 0]] + self.colors)
         # Step progress bar:
         self.emitStepProgress()
 
