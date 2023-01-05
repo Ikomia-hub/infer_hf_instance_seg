@@ -19,13 +19,17 @@
 from ikomia import core, dataprocess
 import copy
 # Your imports below
+import transformers
 from transformers import AutoFeatureExtractor, AutoModelForInstanceSegmentation
+from transformers.utils import logging
 from ikomia.utils import strtobool
 import numpy as np
 import torch
 import numpy as np
 import random
 import os
+
+transformers.utils.logging.set_verbosity_error()
 
 # --------------------
 # - Class to handle the process parameters
@@ -119,7 +123,8 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
                                 threshold = param.conf_thres,
                                 mask_threshold= param.conf_mask_thres,
                                 overlap_mask_area_threshold = param.conf_overlap_mask_area_thres,
-                                target_sizes=[[h, w]]
+                                target_sizes=[[h, w]], 
+                                label_ids_to_fuse= None,
                                 )[0]
 
         segments_info = results["segments_info"]
