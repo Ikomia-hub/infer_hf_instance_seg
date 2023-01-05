@@ -156,9 +156,8 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
             if horizontal_indicies.shape[0]:
                 x1, x2 = horizontal_indicies[[0, -1]]
                 y1, y2 = vertical_indicies[[0, -1]]
-            boxes.append([x1, y1, x2, y2])
-        boxes = boxes[:-1]
-        boxes.reverse()
+            boxes.insert(0, [x1, y1, x2, y2])
+        boxes = boxes[1:]
 
         # Add segmented instance to the output
         for i, b, ml in zip(segments_info, boxes, mask_list):
