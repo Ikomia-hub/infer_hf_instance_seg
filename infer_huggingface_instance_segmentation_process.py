@@ -229,7 +229,7 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
 
         # Inference
         self.infer(image)
-        
+
         self.setOutputColorMap(0, 1, [[0, 0, 0]] + self.colors)
         # Step progress bar:
         self.emitStepProgress()
@@ -251,8 +251,8 @@ class InferHuggingfaceInstanceSegmentationFactory(dataprocess.CTaskFactory):
         self.info.shortDescription = "Instance segmentation using models from Hugging Face."
         self.info.description = "This plugin proposes inference for instance segmentation"\
                                 "using transformers models from Hugging Face. It regroups"\
-                                "models covered by the Hugging Face class:"\
-                                "<AutoModelForInstanceSegmentation>. Models can be loaded either"\
+                                "models covered by the Hugging Face class: "\
+                                "AutoModelForInstanceSegmentation. Models can be loaded either"\
                                 "from your fine-tuned model (local) or from the Hugging Face Hub."
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
