@@ -58,7 +58,7 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
 
         self.check_checkoint = pyqtutils.append_check(self.gridLayout, 
                                                     "Model from checkpoint(local)",
-                                                    self.parameters.checkpoint
+                                                    self.parameters.use_custom_model
                                                     )
 
         self.check_checkoint.stateChanged.connect(self.onStateChanged)
@@ -68,7 +68,7 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
         # Loading moadel from checkpoint path
         self.browse_ckpt = pyqtutils.append_browse_file(self.gridLayout,
                                                         label="Checkpoint path",
-                                                        path=self.parameters.checkpoint_path,
+                                                        path=self.parameters.model_path,
                                                         mode=QFileDialog.Directory)
 
         self.browse_ckpt.setVisible(self.check_checkoint.isChecked())
@@ -129,8 +129,8 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
         self.parameters.conf_mask_thres = self.double_spin_mask_thres.value()
         self.parameters.conf_overlap_mask_area_thres = self.ds_overlap_mask_area_thres.value()
         self.parameters.cuda = self.check_cuda.isChecked()
-        self.parameters.checkpoint = self.check_checkoint.isChecked()
-        self.parameters.checkpoint_path = self.browse_ckpt.path
+        self.parameters.use_custom_model = self.check_checkoint.isChecked()
+        self.parameters.model_path = self.browse_ckpt.path
         # Send signal to launch the process
         self.emit_apply(self.parameters)
 

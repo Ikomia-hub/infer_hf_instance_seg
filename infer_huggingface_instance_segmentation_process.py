@@ -40,10 +40,11 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
     def __init__(self):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
+        self.model_name_or_path = ""
         self.cuda = torch.cuda.is_available()
         self.model_name = "facebook/maskformer-swin-base-coco"
-        self.checkpoint_path = ""
-        self.checkpoint = False
+        self.model_path = ""
+        self.use_custom_model = False
         self.conf_thres = 0.500
         self.conf_mask_thres = 0.5
         self.conf_overlap_mask_area_thres = 0.8
@@ -52,10 +53,11 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
     def set_values(self, param_map):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
+        self.model_name_or_path = param_map["model_name_or_path"]
         self.cuda = strtobool(param_map["cuda"])
         self.model_name = str(param_map["model_name"])
-        self.pretrained = strtobool(param_map["checkpoint"])
-        self.checkpoint_path = param_map["checkpoint_path"]
+        self.pretrained = strtobool(param_map["use_custom_model"])
+        self.model_path = param_map["model_path"]
         self.conf_thres = float(param_map["conf_thres"])
         self.conf_mask_thres = float(param_map["conf_mask_thres"])
         self.conf_overlap_mask_area_thres = float(param_map["conf_overlap_mask_area_thres"])
@@ -65,10 +67,11 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
         param_map = {}
+        param_map["model_name_or_path"] = str(self.model_name_or_path)
         param_map["cuda"] = str(self.cuda)
         param_map["model_name"] = str(self.model_name)
-        param_map["checkpoint"] = str(self.checkpoint)
-        param_map["checkpoint_path"] = self.checkpoint_path
+        param_map["use_custom_model"] = str(self.use_custom_model)
+        param_map["model_path"] = self.model_path
         param_map["conf_thres"] = str(self.conf_thres)
         param_map["conf_mask_thres"] = str(self.conf_mask_thres)
         param_map["conf_overlap_mask_area_thres"] = str(self.conf_overlap_mask_area_thres)
@@ -192,15 +195,31 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.CInstanceSegmentationTask
         # Feature extractor selection
             model_id = None
             # Feature extractor selection
-            if param.checkpoint is False:
+            if param.model_path != "":
+                if os.path.isfile(param.model_path):
+                    directory = os.path.dirname(param.model_path)
+                    model_id = directory
+                    param.use_custom_model = True
+                else:
+                    model_id = param.model_path
+                    param.use_custom_model = True
+            if param.model_name_or_path != "":
+                if os.path.isfile(param.model_name_or_path):
+                    directory = os.path.dirname(param.model_name_or_path)
+                    model_id = directory
+                    param.use_custom_model = True      
+                if os.path.isdir(param.model_name_or_path):
+                    model_id = param.model_name_or_path
+                    param.use_custom_model = True
+
+            if param.use_custom_model is False:
                 model_id = param.model_name
                 self.feature_extractor = AutoFeatureExtractor.from_pretrained(model_id)
             else:
                 feature_extractor_path = os.path.join(
-                                                    param.checkpoint_path,
+                                                    model_id,
                                                     "preprocessor_config.json"
                                                     )
-                model_id = param.checkpoint_path
                 self.feature_extractor = AutoFeatureExtractor.from_pretrained(feature_extractor_path)
 
             # Loading model weight
@@ -212,7 +231,7 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.CInstanceSegmentationTask
             # Get label name
             self.classes = list(self.model.config.id2label.values())
             self.set_names(self.classes)
-                           
+
             param.update = False
 
         # Inference
