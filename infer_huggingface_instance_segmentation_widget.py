@@ -114,14 +114,14 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
         layout_ptr = qtconversion.PyQtToQt(self.gridLayout)
 
         # Set widget layout
-        self.setLayout(layout_ptr)
+        self.set_layout(layout_ptr)
 
     # Widget update on check
     def onStateChanged(self, int):
         self.browse_ckpt.setVisible(self.check_checkoint.isChecked())
         self.combo_model.setVisible(not self.check_checkoint.isChecked())
 
-    def onApply(self):
+    def on_apply(self):
         # Apply button clicked slot
         self.parameters.update = True
         self.parameters.model_name = self.combo_model.currentText()
@@ -132,7 +132,7 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
         self.parameters.checkpoint = self.check_checkoint.isChecked()
         self.parameters.checkpoint_path = self.browse_ckpt.path
         # Send signal to launch the process
-        self.emitApply(self.parameters)
+        self.emit_apply(self.parameters)
 
 
 # --------------------

@@ -49,7 +49,7 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
         self.conf_overlap_mask_area_thres = 0.8
         self.update = False
 
-    def setParamMap(self, param_map):
+    def set_values(self, param_map):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
         self.cuda = strtobool(param_map["cuda"])
@@ -61,10 +61,10 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
         self.conf_overlap_mask_area_thres = float(param_map["conf_overlap_mask_area_thres"])
         self.update = strtobool(param_map["update"])
 
-    def getParamMap(self):
+    def get_values(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
-        param_map = core.ParamMap()
+        param_map = {}
         param_map["cuda"] = str(self.cuda)
         param_map["model_name"] = str(self.model_name)
         param_map["checkpoint"] = str(self.checkpoint)
@@ -80,18 +80,15 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
 # - Class which implements the process
 # - Inherits PyCore.CWorkflowTask or derived from Ikomia API
 # --------------------
-class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
+class InferHuggingfaceInstanceSegmentation(dataprocess.CInstanceSegmentationTask):
 
     def __init__(self, name, param):
-        dataprocess.C2dImageTask.__init__(self, name)
-        # Add input/output of the process here
-        self.addOutput(dataprocess.CInstanceSegIO())
-
+        dataprocess.CInstanceSegmentationTask.__init__(self, name)
         # Create parameters class
         if param is None:
-            self.setParam(InferHuggingfaceInstanceSegmentationParam())
+            self.set_param_object(InferHuggingfaceInstanceSegmentationParam())
         else:
-            self.setParam(copy.deepcopy(param))
+            self.set_param_object(copy.deepcopy(param))
 
         # Detect if we have a GPU available
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -103,13 +100,13 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
         self.classes = None
         self.update = False
 
-    def getProgressSteps(self):
+    def get_progress_steps(self):
         # Function returning the number of progress steps for this process
         # This is handled by the main progress bar of Ikomia application
         return 1
 
     def infer(self, image):
-        param = self.getParam()
+        param = self.get_param_object()
 
         # Image pre-pocessing (image transformation and conversion to PyTorch tensor)
         encoding = self.feature_extractor(image, return_tensors="pt")
@@ -130,7 +127,7 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
 
         segments_info = results["segments_info"]
 
-        self.instance_output = self.getOutput(1)
+        self.instance_output = self.get_output(1)
         self.instance_output.init("PanopticSegmentation", 0, w, h)
 
         # dstImage
@@ -160,40 +157,36 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
         boxes = boxes[1:]
 
         # Add segmented instance to the output
-        for i, b, ml in zip(segments_info, boxes, mask_list):
+        for i, b, mask in zip(segments_info, boxes, mask_list):
             x_obj = float(b[0])
             y_obj = float(b[1])
             h_obj = (float(b[3]) - y_obj)
             w_obj = (float(b[2]) - x_obj)
+            mask = mask.astype(dtype='uint8')
+            self.add_object(
+                            i["id"]-1,
+                            0,
+                            i["label_id"],
+                            float(i["score"]),
+                            x_obj,
+                            y_obj,
+                            w_obj,
+                            h_obj,
+                            mask,
+                            )
 
-            ml = ml.astype(dtype='uint8')  
-            self.instance_output.addInstance(
-                                    i["id"]-1,
-                                    0,
-                                    i["label_id"],
-                                    self.classes[i["label_id"]],
-                                    float(i["score"]),
-                                    x_obj,
-                                    y_obj,
-                                    w_obj,
-                                    h_obj,
-                                    ml,
-                                    self.colors[i["label_id"]]
-                                    )
-
-        self.forwardInputImage(0, 0)
 
     def run(self):
         # Core function of your process
-        # Call beginTaskRun for initialization
-        self.beginTaskRun()
+        # Call begin_task_run for initialization
+        self.begin_task_run()
 
-        image_in = self.getInput(0)
+        image_in = self.get_input(0)
 
         # Get image from input/output (numpy array):
-        image = image_in.getImage()
+        image = image_in.get_image()
 
-        param = self.getParam()
+        param = self.get_param_object()
 
         if param.update or self.model is None:
         # Feature extractor selection
@@ -218,24 +211,18 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
 
             # Get label name
             self.classes = list(self.model.config.id2label.values())
-
-            # Color palette
-            n = len(self.classes)
-            random.seed(14)
-            self.colors = []
-            for i in range(n):
-                self.colors.append(random.choices(range(256), k=3))
+            self.set_names(self.classes)
+                           
             param.update = False
 
         # Inference
         self.infer(image)
 
-        self.setOutputColorMap(0, 1, [[0, 0, 0]] + self.colors)
         # Step progress bar:
-        self.emitStepProgress()
+        self.emit_step_progress()
 
-        # Call endTaskRun to finalize process
-        self.endTaskRun()
+        # Call end_task_run to finalize process
+        self.end_task_run()
 
 
 # --------------------
@@ -248,7 +235,7 @@ class InferHuggingfaceInstanceSegmentationFactory(dataprocess.CTaskFactory):
         dataprocess.CTaskFactory.__init__(self)
         # Set process information as string here
         self.info.name = "infer_huggingface_instance_segmentation"
-        self.info.shortDescription = "Instance segmentation using models from Hugging Face."
+        self.info.short_description = "Instance segmentation using models from Hugging Face."
         self.info.description = "This plugin proposes inference for instance segmentation "\
                                 "using transformers models from Hugging Face. It regroups "\
                                 "models covered by the Hugging Face class: "\
@@ -257,7 +244,7 @@ class InferHuggingfaceInstanceSegmentationFactory(dataprocess.CTaskFactory):
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
         self.info.version = "1.0.0"
-        self.info.iconPath = "icons/icon.png"
+        self.info.icon_path = "icons/icon.png"
         self.info.authors = "Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, "\
                             "Clement Delangue, Anthony Moi, Pierric Cistac, Tim Rault, "\
                             "Rémi Louf, Morgan Funtowicz, Joe Davison, Sam Shleifer, "\
@@ -268,7 +255,7 @@ class InferHuggingfaceInstanceSegmentationFactory(dataprocess.CTaskFactory):
         self.info.journal = "EMNLP"
         self.info.license = "Apache License Version 2.0"
         # URL of documentation
-        self.info.documentationLink = "https://www.aclweb.org/anthology/2020.emnlp-demos.6"
+        self.info.documentation_link = "https://www.aclweb.org/anthology/2020.emnlp-demos.6"
         # Code source repository
         self.info.repository = "https://github.com/huggingface/transformers"
         # Keywords used for search
