@@ -130,9 +130,6 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.CInstanceSegmentationTask
 
         segments_info = results["segments_info"]
 
-        self.instance_output = self.get_output(1)
-        self.instance_output.init("PanopticSegmentation", 0, w, h)
-
         # dstImage
         dst_image = results["segmentation"].cpu().detach().numpy().astype(dtype=np.uint8)
         # Generating binary masks for each object present in the groundtruth mask
