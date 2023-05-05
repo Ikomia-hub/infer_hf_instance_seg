@@ -167,7 +167,7 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
             w_obj = (float(b[2]) - x_obj)
 
             ml = ml.astype(dtype='uint8')  
-            self.instance_output.addInstance(
+            self.instance_output.add_object(
                                     i["id"]-1,
                                     0,
                                     i["label_id"],
