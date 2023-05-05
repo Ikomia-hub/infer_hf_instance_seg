@@ -35,7 +35,7 @@ transformers.utils.logging.set_verbosity_error()
 # - Class to handle the process parameters
 # - Inherits PyCore.CWorkflowTaskParam from Ikomia API
 # --------------------
-class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
+class InferHfInstanceSegParam(core.CWorkflowTaskParam):
 
     def __init__(self):
         core.CWorkflowTaskParam.__init__(self)
@@ -83,13 +83,13 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
 # - Class which implements the process
 # - Inherits PyCore.CWorkflowTask or derived from Ikomia API
 # --------------------
-class InferHuggingfaceInstanceSegmentation(dataprocess.CInstanceSegmentationTask):
+class InferHfInstanceSeg(dataprocess.CInstanceSegmentationTask):
 
     def __init__(self, name, param):
         dataprocess.CInstanceSegmentationTask.__init__(self, name)
         # Create parameters class
         if param is None:
-            self.set_param_object(InferHuggingfaceInstanceSegmentationParam())
+            self.set_param_object(InferHfInstanceSegParam())
         else:
             self.set_param_object(copy.deepcopy(param))
 
@@ -245,12 +245,12 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.CInstanceSegmentationTask
 # - Factory class to build process object
 # - Inherits PyDataProcess.CTaskFactory from Ikomia API
 # --------------------
-class InferHuggingfaceInstanceSegmentationFactory(dataprocess.CTaskFactory):
+class InferHfInstanceSegFactory(dataprocess.CTaskFactory):
 
     def __init__(self):
         dataprocess.CTaskFactory.__init__(self)
         # Set process information as string here
-        self.info.name = "infer_huggingface_instance_segmentation"
+        self.info.name = "infer_hf_instance_seg"
         self.info.short_description = "Instance segmentation using models from Hugging Face."
         self.info.description = "This plugin proposes inference for instance segmentation "\
                                 "using transformers models from Hugging Face. It regroups "\
@@ -280,4 +280,4 @@ class InferHuggingfaceInstanceSegmentationFactory(dataprocess.CTaskFactory):
 
     def create(self, param=None):
         # Create process object
-        return InferHuggingfaceInstanceSegmentation(self.info.name, param)
+        return InferHfInstanceSeg(self.info.name, param)

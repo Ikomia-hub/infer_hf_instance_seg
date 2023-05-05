@@ -18,24 +18,24 @@
 
 from ikomia import core, dataprocess
 from ikomia.utils import pyqtutils, qtconversion
-from infer_huggingface_instance_segmentation.infer_huggingface_instance_segmentation_process import InferHuggingfaceInstanceSegmentationParam
+from infer_hf_instance_seg.infer_hf_instance_seg_process import InferHfInstanceSegParam
 from torch.cuda import is_available
 # PyQt GUI framework
 from PyQt5.QtWidgets import *
 import os
-from infer_huggingface_instance_segmentation.utils import Autocomplete
+from infer_hf_instance_seg.utils import Autocomplete
 
 # --------------------
 # - Class which implements widget associated with the process
 # - Inherits PyCore.CWorkflowTaskWidget from Ikomia API
 # --------------------
-class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
+class InferHfInstanceSegWidget(core.CWorkflowTaskWidget):
 
     def __init__(self, param, parent):
         core.CWorkflowTaskWidget.__init__(self, parent)
 
         if param is None:
-            self.parameters = InferHuggingfaceInstanceSegmentationParam()
+            self.parameters = InferHfInstanceSegParam()
         else:
             self.parameters = param
 
@@ -139,13 +139,13 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
 # - Factory class to build process widget object
 # - Inherits PyDataProcess.CWidgetFactory from Ikomia API
 # --------------------
-class InferHuggingfaceInstanceSegmentationWidgetFactory(dataprocess.CWidgetFactory):
+class InferHfInstanceSegWidgetFactory(dataprocess.CWidgetFactory):
 
     def __init__(self):
         dataprocess.CWidgetFactory.__init__(self)
         # Set the name of the process -> it must be the same as the one declared in the process factory class
-        self.name = "infer_huggingface_instance_segmentation"
+        self.name = "infer_hf_instance_seg"
 
     def create(self, param):
         # Create widget object
-        return InferHuggingfaceInstanceSegmentationWidget(param, None)
+        return InferHfInstanceSegWidget(param, None)
