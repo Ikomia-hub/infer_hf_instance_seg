@@ -35,40 +35,43 @@ transformers.utils.logging.set_verbosity_error()
 # - Class to handle the process parameters
 # - Inherits PyCore.CWorkflowTaskParam from Ikomia API
 # --------------------
-class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
+class InferHfInstanceSegParam(core.CWorkflowTaskParam):
 
     def __init__(self):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
+        self.model_name_or_path = ""
         self.cuda = torch.cuda.is_available()
         self.model_name = "facebook/maskformer-swin-base-coco"
-        self.checkpoint_path = ""
-        self.checkpoint = False
+        self.model_path = ""
+        self.use_custom_model = False
         self.conf_thres = 0.500
         self.conf_mask_thres = 0.5
         self.conf_overlap_mask_area_thres = 0.8
         self.update = False
 
-    def setParamMap(self, param_map):
+    def set_values(self, param_map):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
+        self.model_name_or_path = param_map["model_name_or_path"]
         self.cuda = strtobool(param_map["cuda"])
         self.model_name = str(param_map["model_name"])
-        self.pretrained = strtobool(param_map["checkpoint"])
-        self.checkpoint_path = param_map["checkpoint_path"]
+        self.pretrained = strtobool(param_map["use_custom_model"])
+        self.model_path = param_map["model_path"]
         self.conf_thres = float(param_map["conf_thres"])
         self.conf_mask_thres = float(param_map["conf_mask_thres"])
         self.conf_overlap_mask_area_thres = float(param_map["conf_overlap_mask_area_thres"])
         self.update = strtobool(param_map["update"])
 
-    def getParamMap(self):
+    def get_values(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
-        param_map = core.ParamMap()
+        param_map = {}
+        param_map["model_name_or_path"] = str(self.model_name_or_path)
         param_map["cuda"] = str(self.cuda)
         param_map["model_name"] = str(self.model_name)
-        param_map["checkpoint"] = str(self.checkpoint)
-        param_map["checkpoint_path"] = self.checkpoint_path
+        param_map["use_custom_model"] = str(self.use_custom_model)
+        param_map["model_path"] = self.model_path
         param_map["conf_thres"] = str(self.conf_thres)
         param_map["conf_mask_thres"] = str(self.conf_mask_thres)
         param_map["conf_overlap_mask_area_thres"] = str(self.conf_overlap_mask_area_thres)
@@ -80,18 +83,15 @@ class InferHuggingfaceInstanceSegmentationParam(core.CWorkflowTaskParam):
 # - Class which implements the process
 # - Inherits PyCore.CWorkflowTask or derived from Ikomia API
 # --------------------
-class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
+class InferHfInstanceSeg(dataprocess.CInstanceSegmentationTask):
 
     def __init__(self, name, param):
-        dataprocess.C2dImageTask.__init__(self, name)
-        # Add input/output of the process here
-        self.addOutput(dataprocess.CInstanceSegIO())
-
+        dataprocess.CInstanceSegmentationTask.__init__(self, name)
         # Create parameters class
         if param is None:
-            self.setParam(InferHuggingfaceInstanceSegmentationParam())
+            self.set_param_object(InferHfInstanceSegParam())
         else:
-            self.setParam(copy.deepcopy(param))
+            self.set_param_object(copy.deepcopy(param))
 
         # Detect if we have a GPU available
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -103,13 +103,13 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
         self.classes = None
         self.update = False
 
-    def getProgressSteps(self):
+    def get_progress_steps(self):
         # Function returning the number of progress steps for this process
         # This is handled by the main progress bar of Ikomia application
         return 1
 
     def infer(self, image):
-        param = self.getParam()
+        param = self.get_param_object()
 
         # Image pre-pocessing (image transformation and conversion to PyTorch tensor)
         encoding = self.feature_extractor(image, return_tensors="pt")
@@ -129,9 +129,6 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
                                 )[0]
 
         segments_info = results["segments_info"]
-
-        self.instance_output = self.getOutput(1)
-        self.instance_output.init("PanopticSegmentation", 0, w, h)
 
         # dstImage
         dst_image = results["segmentation"].cpu().detach().numpy().astype(dtype=np.uint8)
@@ -160,12 +157,25 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
         boxes = boxes[1:]
 
         # Add segmented instance to the output
-        for i, b, ml in zip(segments_info, boxes, mask_list):
+        for i, b, mask in zip(segments_info, boxes, mask_list):
             x_obj = float(b[0])
             y_obj = float(b[1])
             h_obj = (float(b[3]) - y_obj)
             w_obj = (float(b[2]) - x_obj)
+            mask = mask.astype(dtype='uint8')
+            self.add_object(
+                            i["id"]-1,
+                            0,
+                            i["label_id"],
+                            float(i["score"]),
+                            x_obj,
+                            y_obj,
+                            w_obj,
+                            h_obj,
+                            mask,
+                            )
 
+<<<<<<< HEAD:infer_huggingface_instance_segmentation_process.py
             ml = ml.astype(dtype='uint8')  
             self.instance_output.add_object(
                                     i["id"]-1,
@@ -182,32 +192,50 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
                                     )
 
         self.forwardInputImage(0, 0)
+=======
+>>>>>>> api_0.9.0:infer_hf_instance_seg_process.py
 
     def run(self):
         # Core function of your process
-        # Call beginTaskRun for initialization
-        self.beginTaskRun()
+        # Call begin_task_run for initialization
+        self.begin_task_run()
 
-        image_in = self.getInput(0)
+        image_in = self.get_input(0)
 
         # Get image from input/output (numpy array):
-        image = image_in.getImage()
+        image = image_in.get_image()
 
-        param = self.getParam()
+        param = self.get_param_object()
 
         if param.update or self.model is None:
         # Feature extractor selection
             model_id = None
             # Feature extractor selection
-            if param.checkpoint is False:
+            if param.model_path != "":
+                if os.path.isfile(param.model_path):
+                    directory = os.path.dirname(param.model_path)
+                    model_id = directory
+                    param.use_custom_model = True
+                else:
+                    model_id = param.model_path
+                    param.use_custom_model = True
+            if param.model_name_or_path != "":
+                if os.path.isfile(param.model_name_or_path):
+                    directory = os.path.dirname(param.model_name_or_path)
+                    model_id = directory
+                    param.use_custom_model = True      
+                if os.path.isdir(param.model_name_or_path):
+                    model_id = param.model_name_or_path
+                    param.use_custom_model = True
+
+            if param.use_custom_model is False:
                 model_id = param.model_name
                 self.feature_extractor = AutoFeatureExtractor.from_pretrained(model_id)
             else:
                 feature_extractor_path = os.path.join(
-                                                    param.checkpoint_path,
+                                                    model_id,
                                                     "preprocessor_config.json"
                                                     )
-                model_id = param.checkpoint_path
                 self.feature_extractor = AutoFeatureExtractor.from_pretrained(feature_extractor_path)
 
             # Loading model weight
@@ -218,37 +246,31 @@ class InferHuggingfaceInstanceSegmentation(dataprocess.C2dImageTask):
 
             # Get label name
             self.classes = list(self.model.config.id2label.values())
+            self.set_names(self.classes)
 
-            # Color palette
-            n = len(self.classes)
-            random.seed(14)
-            self.colors = []
-            for i in range(n):
-                self.colors.append(random.choices(range(256), k=3))
             param.update = False
 
         # Inference
         self.infer(image)
 
-        self.setOutputColorMap(0, 1, [[0, 0, 0]] + self.colors)
         # Step progress bar:
-        self.emitStepProgress()
+        self.emit_step_progress()
 
-        # Call endTaskRun to finalize process
-        self.endTaskRun()
+        # Call end_task_run to finalize process
+        self.end_task_run()
 
 
 # --------------------
 # - Factory class to build process object
 # - Inherits PyDataProcess.CTaskFactory from Ikomia API
 # --------------------
-class InferHuggingfaceInstanceSegmentationFactory(dataprocess.CTaskFactory):
+class InferHfInstanceSegFactory(dataprocess.CTaskFactory):
 
     def __init__(self):
         dataprocess.CTaskFactory.__init__(self)
         # Set process information as string here
-        self.info.name = "infer_huggingface_instance_segmentation"
-        self.info.shortDescription = "Instance segmentation using models from Hugging Face."
+        self.info.name = "infer_hf_instance_seg"
+        self.info.short_description = "Instance segmentation using models from Hugging Face."
         self.info.description = "This plugin proposes inference for instance segmentation "\
                                 "using transformers models from Hugging Face. It regroups "\
                                 "models covered by the Hugging Face class: "\
@@ -257,7 +279,7 @@ class InferHuggingfaceInstanceSegmentationFactory(dataprocess.CTaskFactory):
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
         self.info.version = "1.0.0"
-        self.info.iconPath = "icons/icon.png"
+        self.info.icon_path = "icons/icon.png"
         self.info.authors = "Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, "\
                             "Clement Delangue, Anthony Moi, Pierric Cistac, Tim Rault, "\
                             "Rémi Louf, Morgan Funtowicz, Joe Davison, Sam Shleifer, "\
@@ -268,7 +290,7 @@ class InferHuggingfaceInstanceSegmentationFactory(dataprocess.CTaskFactory):
         self.info.journal = "EMNLP"
         self.info.license = "Apache License Version 2.0"
         # URL of documentation
-        self.info.documentationLink = "https://www.aclweb.org/anthology/2020.emnlp-demos.6"
+        self.info.documentation_link = "https://www.aclweb.org/anthology/2020.emnlp-demos.6"
         # Code source repository
         self.info.repository = "https://github.com/huggingface/transformers"
         # Keywords used for search
@@ -277,4 +299,4 @@ class InferHuggingfaceInstanceSegmentationFactory(dataprocess.CTaskFactory):
 
     def create(self, param=None):
         # Create process object
-        return InferHuggingfaceInstanceSegmentation(self.info.name, param)
+        return InferHfInstanceSeg(self.info.name, param)

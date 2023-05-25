@@ -18,24 +18,24 @@
 
 from ikomia import core, dataprocess
 from ikomia.utils import pyqtutils, qtconversion
-from infer_huggingface_instance_segmentation.infer_huggingface_instance_segmentation_process import InferHuggingfaceInstanceSegmentationParam
+from infer_hf_instance_seg.infer_hf_instance_seg_process import InferHfInstanceSegParam
 from torch.cuda import is_available
 # PyQt GUI framework
 from PyQt5.QtWidgets import *
 import os
-from infer_huggingface_instance_segmentation.utils import Autocomplete
+from infer_hf_instance_seg.utils import Autocomplete
 
 # --------------------
 # - Class which implements widget associated with the process
 # - Inherits PyCore.CWorkflowTaskWidget from Ikomia API
 # --------------------
-class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
+class InferHfInstanceSegWidget(core.CWorkflowTaskWidget):
 
     def __init__(self, param, parent):
         core.CWorkflowTaskWidget.__init__(self, parent)
 
         if param is None:
-            self.parameters = InferHuggingfaceInstanceSegmentationParam()
+            self.parameters = InferHfInstanceSegParam()
         else:
             self.parameters = param
 
@@ -58,7 +58,7 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
 
         self.check_checkoint = pyqtutils.append_check(self.gridLayout, 
                                                     "Model from checkpoint(local)",
-                                                    self.parameters.checkpoint
+                                                    self.parameters.use_custom_model
                                                     )
 
         self.check_checkoint.stateChanged.connect(self.onStateChanged)
@@ -68,7 +68,7 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
         # Loading moadel from checkpoint path
         self.browse_ckpt = pyqtutils.append_browse_file(self.gridLayout,
                                                         label="Checkpoint path",
-                                                        path=self.parameters.checkpoint_path,
+                                                        path=self.parameters.model_path,
                                                         mode=QFileDialog.Directory)
 
         self.browse_ckpt.setVisible(self.check_checkoint.isChecked())
@@ -114,14 +114,14 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
         layout_ptr = qtconversion.PyQtToQt(self.gridLayout)
 
         # Set widget layout
-        self.setLayout(layout_ptr)
+        self.set_layout(layout_ptr)
 
     # Widget update on check
     def onStateChanged(self, int):
         self.browse_ckpt.setVisible(self.check_checkoint.isChecked())
         self.combo_model.setVisible(not self.check_checkoint.isChecked())
 
-    def onApply(self):
+    def on_apply(self):
         # Apply button clicked slot
         self.parameters.update = True
         self.parameters.model_name = self.combo_model.currentText()
@@ -129,23 +129,23 @@ class InferHuggingfaceInstanceSegmentationWidget(core.CWorkflowTaskWidget):
         self.parameters.conf_mask_thres = self.double_spin_mask_thres.value()
         self.parameters.conf_overlap_mask_area_thres = self.ds_overlap_mask_area_thres.value()
         self.parameters.cuda = self.check_cuda.isChecked()
-        self.parameters.checkpoint = self.check_checkoint.isChecked()
-        self.parameters.checkpoint_path = self.browse_ckpt.path
+        self.parameters.use_custom_model = self.check_checkoint.isChecked()
+        self.parameters.model_path = self.browse_ckpt.path
         # Send signal to launch the process
-        self.emitApply(self.parameters)
+        self.emit_apply(self.parameters)
 
 
 # --------------------
 # - Factory class to build process widget object
 # - Inherits PyDataProcess.CWidgetFactory from Ikomia API
 # --------------------
-class InferHuggingfaceInstanceSegmentationWidgetFactory(dataprocess.CWidgetFactory):
+class InferHfInstanceSegWidgetFactory(dataprocess.CWidgetFactory):
 
     def __init__(self):
         dataprocess.CWidgetFactory.__init__(self)
         # Set the name of the process -> it must be the same as the one declared in the process factory class
-        self.name = "infer_huggingface_instance_segmentation"
+        self.name = "infer_hf_instance_seg"
 
     def create(self, param):
         # Create widget object
-        return InferHuggingfaceInstanceSegmentationWidget(param, None)
+        return InferHfInstanceSegWidget(param, None)
