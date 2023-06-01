@@ -175,26 +175,6 @@ class InferHfInstanceSeg(dataprocess.CInstanceSegmentationTask):
                             mask,
                             )
 
-<<<<<<< HEAD:infer_huggingface_instance_segmentation_process.py
-            ml = ml.astype(dtype='uint8')  
-            self.instance_output.add_object(
-                                    i["id"]-1,
-                                    0,
-                                    i["label_id"],
-                                    self.classes[i["label_id"]],
-                                    float(i["score"]),
-                                    x_obj,
-                                    y_obj,
-                                    w_obj,
-                                    h_obj,
-                                    ml,
-                                    self.colors[i["label_id"]]
-                                    )
-
-        self.forwardInputImage(0, 0)
-=======
->>>>>>> api_0.9.0:infer_hf_instance_seg_process.py
-
     def run(self):
         # Core function of your process
         # Call begin_task_run for initialization
