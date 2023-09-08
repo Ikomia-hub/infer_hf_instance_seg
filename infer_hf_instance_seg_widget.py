@@ -56,23 +56,6 @@ class InferHfInstanceSegWidget(core.CWorkflowTaskWidget):
         self.combo_model.setCurrentText(self.parameters.model_name)
         model_list_file.close()
 
-        self.check_checkoint = pyqtutils.append_check(self.gridLayout, 
-                                                    "Model from checkpoint(local)",
-                                                    self.parameters.use_custom_model
-                                                    )
-
-        self.check_checkoint.stateChanged.connect(self.onStateChanged)
-
-        self.combo_model.setVisible(not self.check_checkoint.isChecked())
-        
-        # Loading moadel from checkpoint path
-        self.browse_ckpt = pyqtutils.append_browse_file(self.gridLayout,
-                                                        label="Checkpoint path",
-                                                        path=self.parameters.model_path,
-                                                        mode=QFileDialog.Directory)
-
-        self.browse_ckpt.setVisible(self.check_checkoint.isChecked())
-
         # Cuda
         self.check_cuda = pyqtutils.append_check(
                         self.gridLayout, "Cuda",
@@ -84,7 +67,7 @@ class InferHfInstanceSegWidget(core.CWorkflowTaskWidget):
                                 "Confidence threshold",
                                 self.parameters.conf_thres,
                                 min = 0., max = 1.,
-                                step = 0.01, decimals = 3)
+                                step = 0.01, decimals = 2)
 
         # mask_threshold  to use when turning the predicted masks into binary values.
         self.double_spin_mask_thres = pyqtutils.append_double_spin(
@@ -116,11 +99,6 @@ class InferHfInstanceSegWidget(core.CWorkflowTaskWidget):
         # Set widget layout
         self.set_layout(layout_ptr)
 
-    # Widget update on check
-    def onStateChanged(self, int):
-        self.browse_ckpt.setVisible(self.check_checkoint.isChecked())
-        self.combo_model.setVisible(not self.check_checkoint.isChecked())
-
     def on_apply(self):
         # Apply button clicked slot
         self.parameters.update = True
@@ -129,8 +107,6 @@ class InferHfInstanceSegWidget(core.CWorkflowTaskWidget):
         self.parameters.conf_mask_thres = self.double_spin_mask_thres.value()
         self.parameters.conf_overlap_mask_area_thres = self.ds_overlap_mask_area_thres.value()
         self.parameters.cuda = self.check_cuda.isChecked()
-        self.parameters.use_custom_model = self.check_checkoint.isChecked()
-        self.parameters.model_path = self.browse_ckpt.path
         # Send signal to launch the process
         self.emit_apply(self.parameters)
 

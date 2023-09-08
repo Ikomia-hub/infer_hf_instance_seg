@@ -40,12 +40,9 @@ class InferHfInstanceSegParam(core.CWorkflowTaskParam):
     def __init__(self):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
-        self.model_name_or_path = ""
         self.cuda = torch.cuda.is_available()
         self.model_name = "facebook/maskformer-swin-base-coco"
-        self.model_path = ""
-        self.use_custom_model = False
-        self.conf_thres = 0.500
+        self.conf_thres = 0.5
         self.conf_mask_thres = 0.5
         self.conf_overlap_mask_area_thres = 0.8
         self.update = False
@@ -53,11 +50,8 @@ class InferHfInstanceSegParam(core.CWorkflowTaskParam):
     def set_values(self, param_map):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
-        self.model_name_or_path = param_map["model_name_or_path"]
         self.cuda = strtobool(param_map["cuda"])
         self.model_name = str(param_map["model_name"])
-        self.pretrained = strtobool(param_map["use_custom_model"])
-        self.model_path = param_map["model_path"]
         self.conf_thres = float(param_map["conf_thres"])
         self.conf_mask_thres = float(param_map["conf_mask_thres"])
         self.conf_overlap_mask_area_thres = float(param_map["conf_overlap_mask_area_thres"])
@@ -67,11 +61,8 @@ class InferHfInstanceSegParam(core.CWorkflowTaskParam):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
         param_map = {}
-        param_map["model_name_or_path"] = str(self.model_name_or_path)
         param_map["cuda"] = str(self.cuda)
         param_map["model_name"] = str(self.model_name)
-        param_map["use_custom_model"] = str(self.use_custom_model)
-        param_map["model_path"] = self.model_path
         param_map["conf_thres"] = str(self.conf_thres)
         param_map["conf_mask_thres"] = str(self.conf_mask_thres)
         param_map["conf_overlap_mask_area_thres"] = str(self.conf_overlap_mask_area_thres)
@@ -97,7 +88,6 @@ class InferHfInstanceSeg(dataprocess.CInstanceSegmentationTask):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.instance_output = None
         self.model = None
-        self.model_id = None
         self.feature_extractor = None
         self.colors = None
         self.classes = None
@@ -188,35 +178,11 @@ class InferHfInstanceSeg(dataprocess.CInstanceSegmentationTask):
         param = self.get_param_object()
 
         if param.update or self.model is None:
-        # Feature extractor selection
+
             model_id = None
             # Feature extractor selection
-            if param.model_path != "":
-                if os.path.isfile(param.model_path):
-                    directory = os.path.dirname(param.model_path)
-                    model_id = directory
-                    param.use_custom_model = True
-                else:
-                    model_id = param.model_path
-                    param.use_custom_model = True
-            if param.model_name_or_path != "":
-                if os.path.isfile(param.model_name_or_path):
-                    directory = os.path.dirname(param.model_name_or_path)
-                    model_id = directory
-                    param.use_custom_model = True      
-                if os.path.isdir(param.model_name_or_path):
-                    model_id = param.model_name_or_path
-                    param.use_custom_model = True
-
-            if param.use_custom_model is False:
-                model_id = param.model_name
-                self.feature_extractor = AutoFeatureExtractor.from_pretrained(model_id)
-            else:
-                feature_extractor_path = os.path.join(
-                                                    model_id,
-                                                    "preprocessor_config.json"
-                                                    )
-                self.feature_extractor = AutoFeatureExtractor.from_pretrained(feature_extractor_path)
+            model_id = param.model_name
+            self.feature_extractor = AutoFeatureExtractor.from_pretrained(model_id)
 
             # Loading model weight
             self.model = AutoModelForInstanceSegmentation.from_pretrained(model_id)
@@ -258,7 +224,7 @@ class InferHfInstanceSegFactory(dataprocess.CTaskFactory):
                                 "from your fine-tuned model (local) or from the Hugging Face Hub."
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
-        self.info.version = "1.0.0"
+        self.info.version = "1.1.0"
         self.info.icon_path = "icons/icon.png"
         self.info.authors = "Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, "\
                             "Clement Delangue, Anthony Moi, Pierric Cistac, Tim Rault, "\
