@@ -19,10 +19,9 @@
     </a> 
 </p>
 
-This plugin proposes inference for instance segmentation using transformers models from Hugging Face. It regroups models covered by the Hugging Face class: AutoModelForInstanceSegmentation. Models can be loaded either from your fine-tuned model (local) or from the Hugging Face Hub.
+This algorithm proposes inference for instance segmentation using transformers models from Hugging Face. 
 
-[Insert illustrative image here. Image must be accessible publicly, in algorithm Github repository for example.
-<img src="images/illustration.png"  alt="Illustrative image" width="30%" height="30%">]
+![LR port instance segmentation](https://raw.githubusercontent.com/Ikomia-hub/infer_hf_instance_seg/main/icons/output.jpg)
 
 ## :rocket: Use with Ikomia API
 
@@ -36,11 +35,9 @@ pip install ikomia
 
 #### 2. Create your workflow
 
-[Change the sample image URL to fit algorithm purpose]
-
 ```python
-import ikomia
 from ikomia.dataprocess.workflow import Workflow
+from ikomia.utils.displayIO import display
 
 # Init your workflow
 wf = Workflow()
@@ -49,7 +46,10 @@ wf = Workflow()
 algo = wf.add_task(name="infer_hf_instance_seg", auto_connect=True)
 
 # Run on your image  
-wf.run_on(url="example_image.png")
+wf.run_on(url="https://raw.githubusercontent.com/Ikomia-dev/notebooks/main/examples/img/img_LR.jpg")
+
+# Inpect your result
+display(algo.get_image_with_mask_and_graphics())
 ```
 
 ## :sunny: Use with Ikomia Studio
@@ -62,13 +62,18 @@ Ikomia Studio offers a friendly UI with the same features as the API.
 
 ## :pencil: Set algorithm parameters
 
-[Explain each algorithm parameters]
+- **model_name** (str) - default "facebook/maskformer-swin-base-coco": Name of the model. More models ['facebook/maskeformer' available on HF](https://huggingface.co/models?sort=downloads&search=maskformer).
+- **conf_thres** (float) - default '0.5': The probability score threshold to keep predicted instance masks.
+- **conf_mask_thres** (float) - default '0.5': T Threshold to use when turning the predicted masks into binary values.
+- **conf_overlap_mask_area_thres** (float) - default '0.8': The overlap mask area threshold to merge or discard small disconnected parts within each binary instance mask.
+- **cuda** (bool): If True, CUDA-based inference (GPU). If False, run on CPU
 
-[Change the sample image URL to fit algorithm purpose]
+
+**Parameters** should be in **strings format**  when added to the dictionary.
 
 ```python
-import ikomia
 from ikomia.dataprocess.workflow import Workflow
+from ikomia.utils.displayIO import display
 
 # Init your workflow
 wf = Workflow()
@@ -77,14 +82,18 @@ wf = Workflow()
 algo = wf.add_task(name="infer_hf_instance_seg", auto_connect=True)
 
 algo.set_parameters({
-    "param1": "value1",
-    "param2": "value2",
-    ...
+    'model_name': 'facebook/maskformer-swin-base-coco',
+    'conf_thres': '0.5',
+    "conf_mask_thres": "0.5",
+    "conf_overlap_mask_area_thres": "0.8",
+    'cuda': 'True',
 })
 
 # Run on your image  
-wf.run_on(url="example_image.png")
+wf.run_on(url="https://raw.githubusercontent.com/Ikomia-dev/notebooks/main/examples/img/img_LR.jpg")
 
+# Inpect your result
+display(algo.get_image_with_mask_and_graphics())
 ```
 
 ## :mag: Explore algorithm outputs
@@ -102,7 +111,7 @@ wf = Workflow()
 algo = wf.add_task(name="infer_hf_instance_seg", auto_connect=True)
 
 # Run on your image  
-wf.run_on(url="example_image.png")
+wf.run_on(url="https://raw.githubusercontent.com/Ikomia-dev/notebooks/main/examples/img/img_LR.jpg")
 
 # Iterate over outputs
 for output in algo.get_outputs()
@@ -111,7 +120,3 @@ for output in algo.get_outputs()
     # Export it to JSON
     output.to_json()
 ```
-
-## :fast_forward: Advanced usage 
-
-[optional]
