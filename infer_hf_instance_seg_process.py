@@ -264,6 +264,8 @@ class InferHfInstanceSegFactory(dataprocess.CTaskFactory):
         # Keywords used for search
         self.info.keywords = "semantic, segmentation, inference, transformer,"\
                             "Hugging Face, Pytorch, Maskformer"
+        self.info.algo_type = core.AlgoType.INFER
+        self.info.algo_tasks = "INSTANCE_SEGMENTATION"
 
     def create(self, param=None):
         # Create process object
