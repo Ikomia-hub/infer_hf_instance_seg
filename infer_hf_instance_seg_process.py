@@ -212,7 +212,7 @@ class InferHfInstanceSeg(dataprocess.CInstanceSegmentationTask):
                     cache_dir=self.model_folder
                 )
 
-            self.device = torch.device("cuda") if param.cuda else torch.device("cpu")
+            self.device = torch.device("cuda") if param.cuda and torch.cuda.is_available() else torch.device("cpu")
             self.model.to(self.device)
             print("Will run on {}".format(self.device.type))
 
@@ -264,8 +264,8 @@ class InferHfInstanceSegFactory(dataprocess.CTaskFactory):
         # Keywords used for search
         self.info.keywords = "semantic, segmentation, inference, transformer,"\
                             "Hugging Face, Pytorch, Maskformer"
-        self.info.algo_type = core.AlgoType.INFER
-        self.info.algo_tasks = "INSTANCE_SEGMENTATION"
+        # self.info.algo_type = core.AlgoType.INFER
+        # self.info.algo_tasks = "INSTANCE_SEGMENTATION"
 
     def create(self, param=None):
         # Create process object
